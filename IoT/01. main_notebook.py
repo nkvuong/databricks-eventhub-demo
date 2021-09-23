@@ -272,6 +272,7 @@ silver_stream = (spark.readStream
                  .queryName('silver_query')
                  .start()
                 )
+untilStreamIsReady("silver_query")
 
 # COMMAND ----------
 
