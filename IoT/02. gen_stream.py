@@ -3,7 +3,7 @@
 
 # COMMAND ----------
 
-# MAGIC %run "./demo_init"
+# MAGIC %run "./functions/demo_init"
 
 # COMMAND ----------
 

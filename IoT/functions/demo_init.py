@@ -1,41 +1,5 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC ###Install Event Hub Spark connector
-
-# COMMAND ----------
-
-cntx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
-host = cntx.apiUrl().getOrElse(None)
-token = cntx.apiToken().getOrElse(None)
-post_body = {
-  "cluster_id": cntx.clusterId().getOrElse(None),
-  "libraries": [
-    {
-      "maven": {
-        "coordinates": "com.microsoft.azure:azure-eventhubs-spark_2.12:2.3.21"
-      }
-    }
-  ]
-}
-
-# COMMAND ----------
-
-import requests
-
-response = requests.post(
-  host + '/api/2.0/libraries/install',
-  headers={"Authorization": "Bearer " + token},
-  json = post_body
-)
-
-if response.status_code == 200:
-  print(response.json())
-else:
-  raise Exception(f'Error: {response.status_code} {response.reason}')
-
-# COMMAND ----------
-
-# MAGIC %md
 # MAGIC ###Set paths & parameters
 
 # COMMAND ----------
@@ -67,7 +31,7 @@ db_name = 'vn_iot_demo'
 # COMMAND ----------
 
 import json
-connectionString = 'Endpoint=sb://oneenv-eventhub.servicebus.windows.net/;SharedAccessKeyName=databricks;SharedAccessKey=OlAKvFXpgNdi+R4CoHgvMjkotx9N74KVtweN0B+mpQw=;EntityPath=vn_test_hub'
+connectionString = dbutils.secrets.get("vn-demo", "eventhub-conn")
 eventhub_name = 'vn_test_hub'
 
 ehConf = {}
@@ -113,6 +77,7 @@ import pandas as pd
 # locations
 if 'locations' not in table_names:
   locations = [
+    {'l_id': 0, 'Name' : 'Manchester Office', 'City': 'Manchester', 'latitude': 53.4808, 'longitude': -2.2426},
     {'l_id': 1, 'Name' : 'London Office', 'City': 'London', 'latitude': 51.5074, 'longitude': -0.1278},
     {'l_id': 2, 'Name' : 'Birmingham Office', 'City': 'Birmingham', 'latitude': 52.4862 ,'longitude': -1.8904},
     {'l_id': 3, 'Name' : 'Edinburgh Office', 'City': 'Edinburgh', 'latitude': 55.9533, 'longitude': -3.1883},

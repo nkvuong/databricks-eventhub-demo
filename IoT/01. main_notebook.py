@@ -4,7 +4,7 @@
 # MAGIC ### A live-demo showcasing the lakehouse architecture
 # MAGIC 
 # MAGIC 
-# MAGIC <img src="https://pages.databricks.com/rs/094-YMS-629/images/Delta medallion icon.png" alt='Make all your data ready for BI and ML' width=1000/>
+# MAGIC <img src="https://pages.databricks.com/rs/094-YMS-629/images/Delta medallion icon.png" alt='Make all your data ready for BI and ML' width=800/>
 # MAGIC 
 # MAGIC ---
 
@@ -14,7 +14,59 @@
 
 # COMMAND ----------
 
-# MAGIC %run "./demo_init"
+# MAGIC %md
+# MAGIC ###Install Event Hub Spark connector
+
+# COMMAND ----------
+
+cntx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
+host = cntx.apiUrl().getOrElse(None)
+token = cntx.apiToken().getOrElse(None)
+post_body = {
+  "cluster_id": cntx.clusterId().getOrElse(None),
+  "libraries": [
+    {
+      "maven": {
+        "coordinates": "com.microsoft.azure:azure-eventhubs-spark_2.12:2.3.21"
+      }   
+    }
+  ]
+}
+
+# COMMAND ----------
+
+import requests
+
+response = requests.post(
+  host + '/api/2.0/libraries/install',
+  headers={"Authorization": "Bearer " + token},
+  json = post_body
+)
+
+if response.status_code == 200:
+  print(response.json())
+else:
+  raise Exception(f'Error: {response.status_code} {response.reason}')
+
+# COMMAND ----------
+
+# wait until library is installed
+import json, time
+
+while True:
+  response = requests.get(
+    host + f'/api/2.0/libraries/cluster-status?cluster_id={cntx.clusterId().getOrElse(None)}',
+    headers={"Authorization": "Bearer " + token},
+  )
+  status = [library['status'] for library in response.json()['library_statuses'] if 'eventhubs-spark' in json.dumps(library['library'])][0]
+  if status != "INSTALLING":
+    break
+  time.sleep(2)
+  print("Waiting for library to install")
+
+# COMMAND ----------
+
+# MAGIC %run "./functions/demo_init"
 
 # COMMAND ----------
 
@@ -28,7 +80,7 @@ spark.conf.set("spark.databricks.delta.properties.defaults.autoOptimize.autoComp
 # MAGIC 
 # MAGIC ###Step 0: Set-up Sensor data stream 
 # MAGIC - Configure parameter *runtime_in_min* in demo_init notebook for stream generation run-time<br>
-# MAGIC - <a href="$./gen_stream">Link to notebook</a><br>
+# MAGIC - <a href="$./02. gen_stream">Link to notebook</a><br>
 
 # COMMAND ----------
 
@@ -112,7 +164,7 @@ sensor_readings.writeStream.foreachBatch(to_bronze_table).start()
 
 # MAGIC %md
 # MAGIC # Let us have a look at Delta under the cover
-# MAGIC ![Transaction Log](https://databricks.com/wp-content/uploads/2019/08/image7.png)
+# MAGIC <img src="https://databricks.com/wp-content/uploads/2019/08/image7.png" alt="Transaction Log" width="800"/>
 
 # COMMAND ----------
 
@@ -260,7 +312,6 @@ gold_stream.createOrReplaceTempView("gold")
 
 # MAGIC %sql
 # MAGIC select deviceID as Sensor_No, window.start as interval_beginning, window.end as interval_end, count as No_of_alarms from gold
-# MAGIC where count > 10
 # MAGIC order by window.start
 
 # COMMAND ----------
@@ -278,4 +329,4 @@ stopAllStreams()
 
 # COMMAND ----------
 
-# MAGIC %run "./cleanup"
+# MAGIC %run "./functions/cleanup"
