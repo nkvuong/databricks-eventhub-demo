@@ -150,3 +150,16 @@ def stopAllStreams():
   while len(streams) > 0:
     stopStream(streams[0])
     streams = getActiveStreams()
+    
+def untilStreamIsReady(name):
+  queries = list(filter(lambda query: query.name == name, spark.streams.active))
+  if len(queries) == 0:
+    print("The stream is not active.")
+  else:
+    while (queries[0].isActive and len(queries[0].recentProgress) == 0):
+      pass # wait until there is any type of progress
+    if queries[0].isActive:
+      queries[0].awaitTermination(5)
+      print("The stream is active and ready.")
+    else:
+      print("The stream is not active.")

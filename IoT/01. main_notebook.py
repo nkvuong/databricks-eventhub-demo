@@ -158,7 +158,8 @@ def to_bronze_table(df,epoch_id):
   
   df.unpersist()
 
-sensor_readings.writeStream.foreachBatch(to_bronze_table).start()
+sensor_readings.writeStream.queryName("bronze_query").foreachBatch(to_bronze_table).start()
+untilStreamIsReady("bronze_query")
 
 # COMMAND ----------
 
